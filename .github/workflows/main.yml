@@ -21,9 +21,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
+          pip install requests # added requests lib
+          pip install flake8
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Run tests
         run: |
           pytest test_main.py
+
+      - name: Run Integration Tests (requires container to be running)
+        run: |
+          docker-compose up -d  # Run in detached mode
+          sleep 10  # Give the container time to start
+          pytest -m integration  # Run only integration tests
+          docker-compose down   # Stop the container
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 

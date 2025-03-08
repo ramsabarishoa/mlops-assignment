@@ -5,5 +5,5 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - APP_ENVIRONMENT=production # Example environment variable
-    restart: always # Restart policy
+      - APP_ENVIRONMENT=production
+    restart: always 
