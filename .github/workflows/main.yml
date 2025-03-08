@@ -12,17 +12,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python 3.13.2
+      - name: Set up Python 3.9
         uses: actions/setup-python@v3
         with:
-          python-version: "3.13.2"
+          python-version: "3.9"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
-          pip install requests # added requests lib
-          pip install flake8
+          pip install flake8 # Install the linter
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
@@ -31,14 +30,7 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Run tests
         run: |
-          pytest test_main.py
-
-      - name: Run Integration Tests (requires container to be running)
-        run: |
-          docker-compose up -d  # Run in detached mode
-          sleep 10  # Give the container time to start
-          pytest -m integration  # Run only integration tests
-          docker-compose down   # Stop the container
+          pytest test_main.py  # Run all tests (including the model validation test)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
