@@ -1,47 +1,87 @@
 # mlops-assignment
-This project demonstrates a simple API for serving a pre-trained scikit-learn model (RandomForestClassifier trained on the Iris dataset) using FastAPI, Docker, Docker Compose, and GitHub Actions for CI/CD.  It emphasizes operational best practices such as containerization, automated testing, logging, and monitoring.
+This project showcases fundamental MLOps practices by deploying a simple API to serve a pre-trained scikit-learn model (RandomForestClassifier trained on the Iris dataset). It utilizes FastAPI for the API, Docker for containerization, Docker Compose for local deployment, GitHub Actions for CI/CD, and incorporates basic logging and metrics for monitoring.  The primary goal is to demonstrate a complete, reproducible workflow from model deployment to basic monitoring.
+
+## Key Objectives
+
+This project demonstrates the following key MLOps concepts:
+
+*   **Model Serving:** Exposing a machine learning model as a REST API.
+*   **Containerization:** Packaging the API and model into a Docker container for consistent execution across environments.
+*   **Infrastructure as Code:** Using Docker Compose to define and manage the application's infrastructure.
+*   **CI/CD Pipeline:** Automating the build, testing, and deployment process with GitHub Actions.
+*   **Basic Monitoring:** Collecting and exposing basic metrics to track the API's performance and health.
 
 ## Prerequisites
 
-*   Docker: [https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/)
-*   Docker Compose (optional but recommended):  Usually included with Docker Desktop or installable separately.
-*   Python 3.9+
+*   Docker: [https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/) - Required for running the containerized API.
+*   Docker Compose (optional): Usually included with Docker Desktop or installable separately. Simplifies local deployment.
+*   Python 3.9+ (optional): Required only if you want to retrain the model locally.
 
-## Getting Started
+## Getting Started - Step-by-Step
 
-1.  **Clone the repository:**
+This section provides a detailed, step-by-step guide to getting the API up and running.
+
+1.  **Clone the Repository:**
 
     ```bash
     git clone <your_repository_url>
     cd <repository_directory>
     ```
 
-2.  **Build and run the Docker container:**
+2.  **(Optional) Retrain the Model:**
 
-    **Using Docker Compose (Recommended):**
+    The `iris_model.joblib` file contains a pre-trained model. If you wish to experiment with training your own model (e.g., with different parameters), run:
+
+    ```bash
+    python model.py
+    ```
+
+    This will overwrite the existing `iris_model.joblib` file.  If you skip this step, the pre-trained model will be used.
+
+3.  **Build and Run the Docker Container:**
+
+    **Option 1: Using Docker Compose (Recommended for Simplicity)**
+
+    This is the easiest way to get the API running locally.
 
     ```bash
     docker-compose up --build
     ```
 
-    This command builds the Docker image (if it doesn't exist) and starts the container in detached mode.
+    This command will:
 
-    **Without Docker Compose:**
+    *   Build the Docker image based on the `Dockerfile`.
+    *   Start the container, mapping port 8000 on your host machine to port 8000 inside the container.
+    *   Set the `APP_ENVIRONMENT` environment variable to `production`.
+    *   Automatically restart the container if it crashes.
+
+    **Option 2: Using Docker Directly (Alternative)**
+
+    If you prefer not to use Docker Compose, you can build and run the container with these commands:
 
     ```bash
     docker build -t iris-api .
     docker run -p 8000:8000 iris-api
     ```
 
-## Using the API
+    *   `docker build -t iris-api .` builds the Docker image and tags it as `iris-api`.
+    *   `docker run -p 8000:8000 iris-api` runs the container, mapping port 8000.
 
-The API exposes the following endpoints:
+    After running either of these options, the API will be accessible at `http://localhost:8000`.
 
-*   `/predict`: For making predictions. Accepts a JSON payload with Iris flower measurements.
-*   `/health`: A health check endpoint.
-*   `/metrics`:  Exposes basic metrics about the API's performance (request count, error rate, average latency).
+## Interacting with the API
 
-### Sample Request (Prediction)
+The API provides three endpoints:
+
+*   `/predict`:  Predicts the Iris species based on input features.
+*   `/health`:  A health check endpoint to verify the API is running.
+*   `/metrics`:  Provides basic performance metrics.
+
+### 1. `/predict` Endpoint - Making Predictions
+
+This endpoint accepts a JSON payload containing the four Iris flower measurements: `sepal_length`, `sepal_width`, `petal_length`, and `petal_width`.
+
+**Sample Request (using `curl`):**
 
 ```bash
 curl -X POST -H "Content-Type: application/json" -d '{
@@ -52,121 +92,168 @@ curl -X POST -H "Content-Type: application/json" -d '{
 }' http://localhost:8000/predict
 
 Markdown
-Expected Response (Prediction):
+Expected Response:
 
 {"prediction": 0}
 
 Json
-(The prediction value will be 0, 1, or 2, corresponding to the predicted Iris species.)
+The prediction value (0, 1, or 2) represents the predicted Iris species.
 
-Health Check
+Optional Request ID:
+
+For easier log tracking, you can include an X-Request-ID header with a unique identifier for each request.
+
+curl -X POST -H "Content-Type: application/json" -H "X-Request-ID: my-unique-id-123" -d '{
+    "sepal_length": 5.1,
+    "sepal_width": 3.5,
+    "petal_length": 1.4,
+    "petal_width": 0.2
+}' http://localhost:8000/predict
+
+Bash
+2. /health Endpoint - Health Check
+This endpoint returns a simple JSON response indicating the API's health status.
+
+Sample Request:
+
 curl http://localhost:8000/health
 
 Bash
-Expected Response (Health Check):
+Expected Response:
 
 {"status": "healthy"}
 
 Json
-Metrics Endpoint
+3. /metrics Endpoint - Performance Metrics
+This endpoint exposes basic metrics about the API's performance.
+
+Sample Request:
+
 curl http://localhost:8000/metrics
 
 Bash
-Example Response (Metrics):
+Example Response:
 
 {
-    "total_requests": 15,
-    "error_count": 0,
-    "average_latency": 0.012
+  "total_requests": 10,
+  "error_count": 0,
+  "average_latency": 0.005
 }
 
-Jsontotal_requests: The total number of prediction requests served by the API.
+Json
+total_requests: The total number of requests received by the API.
 
-error_count: The number of prediction requests that resulted in an error (HTTP 500).
+error_count: The number of requests that resulted in an error.
 
-average_latency: The average time (in seconds) taken to process a prediction request.
+average_latency: The average time it takes to process a request (in seconds).
 
-CI/CD Pipeline (GitHub Actions)
-This project uses GitHub Actions for automated CI/CD. The pipeline is defined in .github/workflows/main.yml and performs the following steps:
+CI/CD Pipeline - Automated Build, Test, and Deployment
+The project includes a GitHub Actions workflow (.github/workflows/main.yml) that automates the following tasks:
 
-Checkout Code: Checks out the code from the repository.
+Code Checkout: Checks out the code from the repository.
 
-Set up Python: Sets up a Python 3.9 environment.
+Python Setup: Sets up Python 3.9.
 
-Install Dependencies: Installs project dependencies from requirements.txt, including fastapi, uvicorn, scikit-learn, joblib, pandas, pytest, and requests.
+Dependency Installation: Installs the required Python packages from requirements.txt.
 
-Linting: Runs flake8 to check for code style issues and potential errors. This helps ensure code quality and maintainability.
+Linting: Uses flake8 to enforce code style and identify potential errors. This ensures code quality and consistency.
 
-Run Unit Tests: Executes unit tests defined in test_main.py to verify the functionality of individual components.
+Testing: Executes unit tests in test_main.py to verify the API's functionality, including validating the model's output.
 
-Run Integration Tests: This is a crucial step. It:
+Docker Build: Builds the Docker image.
 
-Starts the Docker container in detached mode using docker-compose up -d.
+Docker Login: Logs in to Docker Hub using the provided credentials (configured as GitHub secrets).
 
-Waits for the container to become ready (10 seconds).
+Docker Push: Pushes the Docker image to Docker Hub, tagged with the Git commit SHA and latest.
 
-Runs pytest with the -m integration flag to execute tests marked as integration tests. These tests send HTTP requests to the /predict endpoint running inside the container to verify the entire deployment stack.
+Configuration:
 
-Stops the Docker container using docker-compose down. This ensures that resources are cleaned up.
+GitHub Secrets: To enable the Docker push step, you need to configure the following secrets in your GitHub repository settings (Settings -> Secrets -> Actions):
 
-Build and Push Docker Image: Builds a Docker image and pushes it to Docker Hub (if the workflow is triggered on the main branch). It uses the GitHub Actions secrets DOCKERHUB_USERNAME and DOCKERHUB_TOKEN for authentication. The image is tagged with the Git SHA and latest.
+DOCKERHUB_USERNAME: Your Docker Hub username.
 
-Logging and Monitoring
-The API logs inference requests and responses in JSON format using the Python logging module. Each log entry includes:
+DOCKERHUB_TOKEN: Your Docker Hub access token. See Docker Hub documentation for instructions on creating an access token.
 
-request_id: A unique ID for the request (if provided in the request headers).
+Triggers:
 
-input_data: The input data provided to the /predict endpoint.
+The workflow is triggered on:
 
-prediction: The predicted Iris species.
+Pushes to the main branch.
 
-latency: The time taken to process the request (in seconds).
+Pull requests targeting the main branch.
 
-error: If an error occurred, the error message and traceback are logged.
+Logging and Monitoring - Observing the API
+The FastAPI application logs inference requests and responses to stdout in JSON format. Each log entry includes:
 
-Example Log Entry (JSON):
+request_id: The request ID (if provided).
 
-{"request_id": "12345", "input_data": {"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}, "prediction": 0, "latency": 0.015}
+input_data: The input features used for prediction.
+
+prediction or error: The model's prediction or an error message (if an error occurred).
+
+latency: The time it took to process the request (in seconds).
+
+Example Log Entry (Successful Prediction):
+
+{"request_id": "my-unique-id-123", "input_data": {"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}, "prediction": 0, "latency": 0.004}
 
 Json
-The API also exposes a /metrics endpoint that provides basic metrics about the API's performance (total requests, error count, average latency). These metrics are stored in memory (for simplicity) and are reset when the API restarts.
+Example Log Entry (Error):
 
-Integration with Monitoring Systems:
+{"request_id": "N/A", "input_data": {"sepal_length": 1.0, "sepal_width": 1.0, "petal_length": 1.0, "petal_width": 1.0}, "error": "ValueError('Input X must be non-negative.')", "latency": 0.001}
 
-For a production environment, you would integrate these logs and metrics with a dedicated monitoring system. Here's how you could approach it:
+Json
+Integration with Monitoring Systems (Conceptual):
 
-Logging:
+While this project provides basic logging and metrics, a production system would require integration with a dedicated monitoring system. Here's the general approach:
 
-Use a logging driver (e.g., fluentd, gelf) to forward container logs to a central log aggregation system like the ELK stack (Elasticsearch, Logstash, Kibana) or Splunk.
+Log Aggregation: Configure Docker to forward stdout logs to a log aggregation service (e.g., Fluentd, Logstash, AWS CloudWatch Logs, Google Cloud Logging).
 
-Configure Logstash to parse the JSON log entries and extract the relevant fields.
+Log Parsing: The log aggregation service parses the JSON logs to extract relevant fields (e.g., request ID, input features, prediction, error message, latency).
 
-Use Kibana to visualize the logs, create dashboards, and set up alerts based on specific events or error patterns.
+Metrics Generation: The parsed data is used to generate metrics, such as request count, error rate, average latency, and latency percentiles.
 
-Metrics:
+Visualization and Alerting: Tools like Grafana, Kibana (part of the ELK stack), or cloud-specific monitoring dashboards are used to visualize the metrics and set up alerts based on predefined thresholds.
 
-Use a metrics collector like Prometheus to scrape the /metrics endpoint periodically.
+Expose Metrics (Prometheus): For Prometheus, you would typically use a Prometheus client library to expose metrics in the required format. This API currently exposes metrics in JSON format via the /metrics endpoint, but a Prometheus exporter would be needed for proper integration.
 
-Configure Prometheus to store the metrics data in a time-series database.
+The provided /metrics endpoint offers a starting point for collecting metrics, but it's important to use a more comprehensive solution for a real-world deployment.
 
-Use Grafana to create dashboards and visualize the metrics, allowing you to monitor the API's performance over time and identify potential issues. You could set up alerts in Grafana to notify you of high latency or error rates.
+Running Tests - Ensuring API Functionality
+To run the unit tests locally, first install the required dependencies:
 
-Environment Variables
-APP_ENVIRONMENT: (Example) Can be used to configure the application's behavior based on the environment (e.g., development, production). Currently not extensively used, but included to demonstrate understanding of configuration management.
+pip install -r requirements.txt
+pip install pytest
 
-Scaling and Future Improvements
-This project can be further improved and scaled in several ways:
+Bash
+Then, execute the tests using pytest:
 
-Load Balancing: Deploy the API behind a load balancer (e.g., Nginx, HAProxy) with multiple instances of the container running. Kubernetes could be used to orchestrate the deployment and scaling of these instances.
+pytest test_main.py
 
-Auto-scaling: Implement auto-scaling based on CPU utilization or request latency using Kubernetes HPA (Horizontal Pod Autoscaler).
+Bash
+The tests will verify that the API endpoints are functioning correctly and that the model is producing valid predictions.
 
-Model Versioning: Implement a model versioning system to track different versions of the trained model. This could involve storing models in a separate repository (e.g., AWS S3) and updating the API to load the correct version based on a configuration setting.
+Potential Next Steps - Scaling and Enhancements
+This project provides a foundation for deploying and monitoring a machine learning model. Here are some potential next steps to enhance the system:
 
-A/B Testing: Implement A/B testing by deploying multiple versions of the model and routing traffic to each version based on a defined percentage. This allows for comparing the performance of different models in a real-world setting.
+Kubernetes Deployment: Deploy the container to a Kubernetes cluster for increased scalability, resilience, and manageability. Consider using Helm charts to simplify deployment and configuration.
 
-Security: Implement authentication and authorization to secure the API endpoints. This could involve using API keys, JWT tokens, or OAuth 2.0.
+Load Balancing: Implement a load balancer (e.g., Nginx, HAProxy) to distribute traffic across multiple instances of the API server.
 
-Request Validation: Implement request validation to validate the input data against a schema, ensuring that the data is in the correct format and meets the required constraints. Pydantic makes this easy.
+Security Enhancements:
 
-Model Retraining: Implement a scheduled model retraining pipeline using tools like Airflow or cron jo
+Implement authentication and authorization to protect the API endpoints.
+
+Use HTTPS to encrypt communication.
+
+Regularly scan the Docker image for vulnerabilities.
+
+Model Monitoring: Implement a robust model monitoring system to track model performance over time and detect data drift or concept drift. This could involve tracking prediction accuracy, data distributions, and other relevant metrics.
+
+A/B Testing: Implement A/B testing to compare different model versions or API configurations.
+
+Advanced Metrics: Add more granular metrics, such as CPU utilization, memory usage, and network traffic, to gain deeper insights into the API's performance.
+
+Retry Mechanism: Implement a retry mechanism to automatically retry failed requests due to transient errors.
+
+Input Validation: Implement more robust input validation to prevent errors caused by invalid data.
