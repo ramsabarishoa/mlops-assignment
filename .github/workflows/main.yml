@@ -28,7 +28,7 @@ jobs:
         run: docker build -t mlops-assignment .
 
       - name: Logging in to Docker Hub
-        run: docker login -u ramsaba0246-p dckr_pat_a2PpH6QFIITqFVt1xyle8-9P-30
+        run: docker login -u ramsaba0246 -p dckr_pat_a2PpH6QFIITqFVt1xyle8-9P-30
 
       - name: Pushing Docker image
         run: docker push mlops-api:latest
