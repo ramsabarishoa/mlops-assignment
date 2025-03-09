@@ -103,7 +103,7 @@ The prediction value (0, 1, or 2) represents the predicted Iris species.
 
 For easier log tracking, you can include an X-Request-ID header with a unique identifier for each request.
 
-````bash
+```bash
 curl -X POST -H "Content-Type: application/json" -H "X-Request-ID: my-unique-id-123" -d '{
     "sepal_length": 5.1,
     "sepal_width": 3.5,
@@ -119,7 +119,7 @@ This endpoint returns a simple JSON response indicating the API's health status.
 
 ##Sample Request:
 
-````bash
+```bash
 curl http://localhost:8000/health
 ```
 
